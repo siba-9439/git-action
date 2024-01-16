@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .welcome {
+            font-size: 24px;
+            margin: 20px;
+        }
+        .options {
+            margin: 20px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .yes-button {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+        }
+        .no-button {
+            background-color: #f44336; /* Red */
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Rajinikanth DevOps WorkSpace</h1>
+
+    <div class="welcome" id="welcomeMessage"></div>
+
+    <div class="options">
+        <div class="button-container">
+            <button class="button yes-button" id="yesButton">Yes</button>
+            <button class="button no-button" id="noButton">No</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to display the welcome message with the user's name
+        function displayWelcomeMessage() {
+            const userName = prompt("Please enter your Chrome profile name:");
+            if (userName) {
+                document.getElementById("welcomeMessage").textContent = `Welcome, ${userName}!`;
+            }
+        }
+
+        // Function to handle the "Yes" button click
+        document.getElementById("yesButton").addEventListener("click", function () {
+            const response1 = confirm("Did you complete the Jenkins declarative pipeline lab?");
+            
+            if (response1) {
+                const response2 = confirm("Great! Did you complete the GitHub Action code as well?");
+                
+                if (response2) {
+                    alert("Awesome! You're all set!");
+                } else {
+                    alert("Please complete the GitHub Action code by EOD.");
+                }
+            } else {
+                alert("Please complete the Jenkins pipeline lab and upload the picture to Slack.");
+            }
+        });
+
+        // Function to handle the "No" button click
+        document.getElementById("noButton").addEventListener("click", function () {
+            alert("Please complete the Jenkins pipeline lab and upload the picture to Slack.");
+        });
+
+        // Call the function to display the welcome message
+        displayWelcomeMessage();
+    </script>
+</body>
+</html>
