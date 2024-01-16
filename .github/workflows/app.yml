@@ -1,0 +1,98 @@
+name: Node.js CI/CD
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Run Tests
+      run: npm test
+
+    - name: Build React App
+      run: npm run build
+
+    - name: Set Up SSH Key
+      env:
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      run: |
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+
+    - name: Adjust Permissions on EC2
+      env:
+        EC2_IP: ${{ secrets.EC2_IP }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@$EC2_IP "sudo chown -R ubuntu:ubuntu /var/www/react-app"
+
+    - name: Deploy to EC2
+      env:
+        EC2_IP: ${{ secrets.EC2_IP }}
+      run: |
+        scp -o StrictHostKeyChecking=no -i private_key.pem -r ./build ubuntu@$EC2_IP:/var/www/react-app
+
+    - name: Reset Permissions on EC2
+      env:
+        EC2_IP: ${{ secrets.EC2_IP }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@$EC2_IP "sudo chown -R www-data:www-data /var/www/react-app/build"
+
+    - name: Install and Configure Nginx
+      env:
+        EC2_IP: ${{ secrets.EC2_IP }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -T -i private_key.pem ubuntu@$EC2_IP <<-EOF
+          sudo apt update
+          sudo apt install -y nginx
+          sudo systemctl start nginx
+          sudo systemctl enable nginx
+
+          sudo rm -f /etc/nginx/sites-enabled/default
+
+          # Use escaped variables for \$uri and \$uri/ to ensure they are not expanded by the shell
+          echo "server {
+              listen 80;
+              server_name $EC2_IP;
+
+              location / {
+                  root /var/www/react-app/build;
+                  index index.html;
+                  try_files $uri $uri/ /index.html;
+              }
+          }" | sudo tee /etc/nginx/sites-available/react-app
+
+          sudo ln -sf /etc/nginx/sites-available/react-app /etc/nginx/sites-enabled/
+          if sudo nginx -t; then
+              sudo systemctl restart nginx
+              echo "Nginx is reloaded successfully"
+          else
+              echo "Nginx configuration error"
+              exit 1
+          fi
+        EOF
+
+    - name: Check Deployment
+      env:
+        EC2_IP: ${{ secrets.EC2_IP }}
+      run: |
+        echo "Visit http://$EC2_IP to see your deployed React application."
